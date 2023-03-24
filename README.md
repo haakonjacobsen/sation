@@ -1,8 +1,8 @@
 # Sation🎙️
-A sensational transcribing app for any conversation
+**A sensational transcribing app for any conversation**
 <div>
-<img src="https://user-images.githubusercontent.com/15661593/227635796-06f1f42e-a57e-48c9-b230-fd49cc618e07.png" width="400">
-  </div>
+  <img src="https://user-images.githubusercontent.com/15661593/227635796-06f1f42e-a57e-48c9-b230-fd49cc618e07.png" width="400">
+</div>
 
 
 ### Meet sation ...
@@ -16,7 +16,8 @@ the cool and innovative recording app that's changing the game in audio transcri
   <img src="https://user-images.githubusercontent.com/15661593/227644636-6f4fdc20-6faa-47e8-b1c4-e5b5f710c1f8.jpg" width="195">
 </div>
 
-### Confessions
+### Confessions 😮
 * The Intro text is written by [GPT-4](https://openai.com/research/gpt-4)
 * The logo is created by [Midjourney](https://www.midjourney.com)
 * The App is mostly written by [GitHub Copilot](https://github.com/features/copilot)
+* 🤠
