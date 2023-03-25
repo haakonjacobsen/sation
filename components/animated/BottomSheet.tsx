@@ -49,7 +49,6 @@ const BottomSheet = React.forwardRef<BottomSheetRefProps, BottomSheetProps>(({ c
       if (event.y > 150) return;
       translateY.value = event.translationY + context.value.y;
       translateY.value = Math.max(translateY.value, MAX_TRANSLATE_Y);
-      console.log(translateY.value);
     })
     .onEnd(() => {
       if (translateY.value > -150) {
