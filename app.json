@@ -20,7 +20,8 @@
         "UIBackgroundModes": [
           "audio"
         ]
-      }
+      },
+      "bundleIdentifier": "com.haakonjacobs.sation"
     },
     "android": {
       "adaptiveIcon": {
@@ -30,6 +31,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c173aa06-c1a7-4cf7-b563-2831f1b552dc"
+      }
     }
   }
 }
