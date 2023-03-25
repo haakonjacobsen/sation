@@ -1,48 +1,112 @@
-import {Button, StyleSheet, Text, View} from "react-native";
+import {FlatList, StyleSheet, Text, View} from "react-native";
 import {RootStackParamList} from "../types/navigation";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {useEffect, useState} from "react";
-import {Audio} from "expo-av";
+import React, {useRef} from "react";
+import AudioBottomSheet, {AudioBottomSheetRefProps} from "../components/animated/AudioBottomSheet";
+import {theme} from "../styles/theme";
+import {AudioController} from "../components/AudioController";
+import {Segment, uploadSoundFile} from "../api/uploadSoundFile";
+import {useQuery} from "react-query";
+import {secondsToTimeString} from "../utils/secondsToTime";
+
 
 type AudioScreenProps = NativeStackScreenProps<RootStackParamList, 'AudioScreen'>
-export default function AudioScreen({route}: AudioScreenProps) {
+export default function AudioScreen({ route }: AudioScreenProps) {
   const { recording } = route.params;
-  const [sound, setSound] = useState<Audio.Sound>();
+  const audioBottomSheetRef = useRef<AudioBottomSheetRefProps>(null);
 
-  async function playSound() {
-    recording.sound.playAsync();
+  const {data, isLoading, isError} = useQuery(['uploadSoundFile', recording.file],  () => uploadSoundFile(recording.file), {
+    enabled: !!recording,
+  });
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.transcriptContainer}>
+          <Text style={styles.transcriptionText}>Loading...</Text>
+        </View>
+        <AudioBottomSheet ref={audioBottomSheetRef}>
+          <AudioController recording={recording} />
+        </AudioBottomSheet>
+      </View>
+    );
   }
-
-  async function stopSound() {
-    recording.sound.stopAsync();
+  else if (isError) {
+    if (isLoading) {
+      return (
+        <View style={styles.container}>
+          <View style={styles.transcriptContainer}>
+            <Text style={styles.transcriptionText}>Something went wrong</Text>
+          </View>
+          <AudioBottomSheet ref={audioBottomSheetRef}>
+            <AudioController recording={recording} />
+          </AudioBottomSheet>
+        </View>
+      );
+    }
   }
-
-  useEffect(() => {
-    return sound
-      ? () => {
-        console.log('Unloading Sound');
-        sound.unloadAsync();
-      }
-      : undefined;
-  }, [sound]);
-
 
   return (
     <View style={styles.container}>
-      <Text>{recording.filname}</Text>
-      <Text>{recording.duration}</Text>
-      <Button title="Play Sound" onPress={() => playSound()} />
-      <Button title="Stop Sound" onPress={() => stopSound()} />
+      <FlatList
+        style={{width: '100%', padding: 16, paddingBottom: 50}}
+        data={data?.segments}
+        keyExtractor={(item) => `${item.id}`}
+        renderItem={({ item }) => (
+          <TrascriptSegment item={item}/>
+        )}
+      />
+      <AudioBottomSheet ref={audioBottomSheetRef}>
+        <AudioController recording={recording} />
+      </AudioBottomSheet>
     </View>
   );
+}
+
+interface TrascriptSegmentProps {
+  item: Segment;
+}
+function TrascriptSegment({item}: TrascriptSegmentProps) {
+  return (
+    <View style={styles.transciptSegment}>
+      <Text style={styles.timestampText}>{secondsToTimeString(item.start)}</Text>
+      <Text style={styles.transcriptionText}>{item.text}</Text>
+      <Text style={styles.timestampText}>{secondsToTimeString(item.end)}</Text>
+    </View>
+  )
 }
 
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.background.primary,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+  },
+  transcriptContainer: {
+    padding: 16,
+    height: '100%',
+    paddingBottom: 50,
+    width: '100%',
+    backgroundColor: theme.background.primary,
+  },
+  timestampText:{
+    color: theme.text.secondary,
+  },
+  transcriptionText: {
+    padding: 8,
+    flex:1,
+    marginBottom: 4,
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    fontSize: 20,
+    color: theme.text.primary,
+  },
+  transciptSegment: {
+    alignItems:'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    flexDirection:'row'
   },
 });
