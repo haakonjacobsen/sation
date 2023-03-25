@@ -13,6 +13,7 @@ import SationSettings from "../components/SationSettings";
 import {useRecoilValue} from "recoil";
 import {useHighQualityRecordingState} from "../recoil/atoms";
 
+
 export default function HomeScreen() {
   const [recording, setRecording] = useState<Recording>();
   const [recordings, setRecordings] = useState<RecordingObject[]>([]);
@@ -37,12 +38,11 @@ export default function HomeScreen() {
       );
       setRecording(recording);
     } catch (err) {
-      console.error('Failed to start recording', err);
+      Alert.alert('Failed to start recording', '' + err);
     }
   }
 
   async function stopRecording() {
-    console.log('Stopping recording..');
     setRecording(undefined);
     if (recording){
       await recording.stopAndUnloadAsync();
@@ -51,7 +51,8 @@ export default function HomeScreen() {
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Error
         )
-        console.log('Failed to load recording');
+        Alert.alert('Failed to load recording');
+        return;
       } else  {
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success
@@ -60,12 +61,17 @@ export default function HomeScreen() {
         if (!filname) {
           filname = `Untitled ${recordings.length + 1}`;
         }
-        if(status.durationMillis) {
+        const uri = recording.getURI();
+        if (uri === null) {
+          Alert.alert('Error', 'Not able to save recording');
+          return;
+        }
+        if(status.durationMillis ) {
           const newRecording = {
             filname,
             sound,
             duration: getDurationFormatted(status.durationMillis),
-            file: recording.getURI(),
+            file: uri,
             date: new Date(Date.now() - status.durationMillis),
           };
           let updatedRecordings = [newRecording, ...recordings];
@@ -83,8 +89,8 @@ export default function HomeScreen() {
         (text) => {
           resolve(text);
         }
-      );
-    });
+    );
+  });
 
   function getDurationFormatted(millis: number) {
     const minutes = millis / 1000 / 60;
@@ -104,7 +110,7 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <View style={{height:'100%', paddingTop:35,}}>
+    <View style={{ height: '100%', paddingTop: 35 }}>
       <View style={styles.homeContainer}>
         <FlatList
           showsVerticalScrollIndicator={false}
