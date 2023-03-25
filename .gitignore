@@ -18,3 +18,4 @@ web-build/
 
 .idea
 *.mp3
+.env
