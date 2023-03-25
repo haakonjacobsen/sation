@@ -1,5 +1,4 @@
-# Sation🎙️
-**A sensational transcribing app for any conversation**
+# Sation🎙️ - **A sensational transcribing app for any conversation**
 <div>
   <img src="https://user-images.githubusercontent.com/15661593/227635796-06f1f42e-a57e-48c9-b230-fd49cc618e07.png" width="400">
 </div>
