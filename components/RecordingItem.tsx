@@ -1,20 +1,47 @@
-import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {theme} from "../styles/theme";
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../types/navigation";
 import {RecordingObject} from "../types/recording";
+import LottieView from "lottie-react-native";
+import React, {useRef} from "react";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-export default function RecordingItem({ recording }:{recording: RecordingObject}) {
+export default function RecordingItem({ recording }:{recording: RecordingObject, setRecording: Function}) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const animation = useRef(null);
+
   return (
-    <TouchableOpacity style={styles.recordingItem} onPress={() => navigation.push('AudioScreen', { recording: recording } )}>
+    <TouchableOpacity
+      disabled={!recording.isUploaded || !recording.isTranscribed}
+      style={recording.isTranscribed ? styles.recordingItem : [styles.recordingItem, styles.disabledRecording]}
+      onPress={() => navigation.push('AudioScreen', { recording: recording } )}
+    >
       <View>
         <Text numberOfLines={1} style={styles.mainText}>{recording.filname}</Text>
-        <Text numberOfLines={1} style={styles.subText}>{`${recording.date.toLocaleDateString('no')} - ${recording.duration}`}</Text>
+        <Text numberOfLines={1} style={styles.subText}>{`${recording.date.toLocaleDateString('no')} - ${recording.durationString}`}</Text>
       </View>
-      <View>
-        <Image source={{uri: 'https://i.imgur.com/ytSSH2J.png'}} style={{width: 200, height: 50}} />
+      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        { recording.isUploaded && recording.isTranscribed && (
+          <MaterialCommunityIcons name="text-box-check-outline" size={30} color={theme.text.primary} style={{ marginRight: 16 }} />
+        )}
+        { recording.isUploaded && !recording.isTranscribed && (
+          <LottieView
+            autoPlay
+            ref={animation}
+            style={{
+              height: 60,
+              width: 60,
+            }}
+            source={require('../assets/lottie/write.json')}
+          />
+        )}
+        { recording.isUploaded ? (
+          <MaterialCommunityIcons name="cloud-check-outline" size={30} color={theme.text.primary} />
+        ) : (
+          <MaterialCommunityIcons name="cloud-sync-outline" size={30} color={theme.text.secondary} style={{ marginRight: 16 }} />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -36,6 +63,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 2,
+  },
+  disabledRecording: {
+    backgroundColor: theme.background.primary,
   },
   mainText: {
     fontSize: 20,

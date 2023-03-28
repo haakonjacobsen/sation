@@ -1,23 +1,10 @@
 import * as FileSystem from "expo-file-system";
-import {Alert} from "react-native";
 
-export interface Segment {
-  id: number;
-  seek: number;
-  start: number;
-  end: number;
-  text: string;
-  tokens: number[];
-  temperature: number;
-  avg_logprob: number;
-  compression_ratio: number;
-  no_speach_prob: number;
+export interface APIResponse {
+  success: string;
 }
-export interface TranscriptionResponse {
-  language: string;
-  segments: Segment[];
-}
-export async function uploadSoundFile(uri: string): Promise<TranscriptionResponse | undefined> {
+export async function uploadSoundFile(uri: string): Promise<APIResponse | undefined> {
+  console.log('Uploading sound file:', uri)
   // Replace the URL with your Flask server's IP address and port number
   const serverUrl = 'http://192.168.0.4:5001/upload';
 
@@ -34,15 +21,11 @@ export async function uploadSoundFile(uri: string): Promise<TranscriptionRespons
         'Content-Type': 'multipart/form-data',
       },
     };
-
     const response = await FileSystem.uploadAsync(serverUrl, uri, options);
-
-    if (response.status === 200) {
-      return JSON.parse(response.body) as TranscriptionResponse;
-    } else {
-      Alert.alert('' + response.status, JSON.parse(response.body));
-      return;
+    if (response.status !== 200) {
+      throw new Error('Could not transcribe file.');
     }
+    return JSON.parse(response.body) as APIResponse;
   } catch (error) {
     console.error('Error uploading sound file:', error);
     return;

@@ -1,14 +1,21 @@
 import {RecordingObject} from "../types/recording";
 import React, {useEffect, useState} from "react";
 import {Audio} from "expo-av";
-import {Button, Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {Button, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {Ionicons} from "@expo/vector-icons";
 import {theme} from "../styles/theme";
 import * as Sharing from "expo-sharing";
 import {uploadSoundFile} from "../api/uploadSoundFile";
+import {Slider} from "react-native-awesome-slider";
+import {useSharedValue} from "react-native-reanimated";
 
 export function AudioController({ recording }: { recording:RecordingObject } ) {
+  const progress = useSharedValue(0);
+  const min = useSharedValue(0);
+  const max = useSharedValue(recording.durationMillis);
+
   const [sound, setSound] = useState<Audio.Sound>();
+  const [currentPosition, setCurrentPosition] = useState<number>(0);
   async function playSound() {
     recording.sound.playAsync();
   }
@@ -16,6 +23,7 @@ export function AudioController({ recording }: { recording:RecordingObject } ) {
   async function stopSound() {
     recording.sound.stopAsync();
   }
+
 
   async function searchAudio() {
     console.log('Searching in audio');
@@ -32,12 +40,24 @@ export function AudioController({ recording }: { recording:RecordingObject } ) {
 
   return (
     <View style={styles.audioControllerContainer}>
-      <Text style={styles.durationText}>{recording.duration}</Text>
+      <Text style={styles.durationText}>{recording.durationString}</Text>
       <View style={styles.audioController}>
         <TouchableOpacity onPress={playSound}>
           <Ionicons name="ios-play" size={55} color={theme.text.primary} onPress={playSound}/>
         </TouchableOpacity>
-        <Image source={{uri: 'https://i.imgur.com/ytSSH2J.png'}} style={{resizeMode:'contain', flexGrow: 1, height: 100}} />
+        <Slider
+          theme={{
+            disableMinTrackTintColor: theme.text.secondary,
+            maximumTrackTintColor: theme.text.secondary,
+            minimumTrackTintColor: theme.sation.primary,
+            cacheTrackTintColor: '#333',
+            bubbleBackgroundColor: '#666',
+          }}
+          style={{backgroundColor: 'red', flex: 1}}
+          progress={progress}
+          minimumValue={min}
+          maximumValue={max}
+        />
         <TouchableOpacity onPress={playSound}>
           <Ionicons name="ios-search" size={50}  color={theme.text.primary} onPress={searchAudio}/>
         </TouchableOpacity>

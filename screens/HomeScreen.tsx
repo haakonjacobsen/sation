@@ -1,24 +1,54 @@
 import {Alert, FlatList, StyleSheet, TouchableOpacity, View} from "react-native";
 import {theme} from "../styles/theme";
-import React, {useCallback, useRef, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import RecordingItem from "../components/RecordingItem";
 import {Recording} from "expo-av/build/Audio/Recording";
 import {Audio} from "expo-av";
-import {RecordingObject} from "../types/recording";
 import {SvgXml} from "react-native-svg";
 import {notRecordingButton, recordingButton} from "../assets/svg/recordButtonSvg";
 import * as Haptics from 'expo-haptics';
 import BottomSheet, {BottomSheetRefProps} from "../components/animated/BottomSheet";
 import SationSettings from "../components/SationSettings";
-import {useRecoilValue} from "recoil";
-import {useHighQualityRecordingState} from "../recoil/atoms";
-
+import {useRecoilState, useRecoilValue} from "recoil";
+import {recordingsState, useHighQualityRecordingState} from "../recoil/atoms";
+import LottieView from 'lottie-react-native';
+import {getDurationFormatted} from "../utils/getDurationFormatted";
+import {uploadSoundFile} from "../api/uploadSoundFile";
+import {transcribeSoundFile} from "../api/transcribeSoundFile";
 
 export default function HomeScreen() {
+  const animation = useRef(null);
   const [recording, setRecording] = useState<Recording>();
-  const [recordings, setRecordings] = useState<RecordingObject[]>([]);
+  const [recordings, setRecordings] = useRecoilState(recordingsState);
   const bottomSheetRef = useRef<BottomSheetRefProps>(null);
-  const highQualityRecording = useRecoilValue(useHighQualityRecordingState)
+  const highQualityRecording = useRecoilValue(useHighQualityRecordingState);
+
+
+  async function addMockSound() {
+    console.log('addMockSound');
+    const { sound } = await Audio.Sound.createAsync( require('../assets/audio/test-fireship.mp3'));
+    const durationMillis = await sound.getStatusAsync()
+      .then(function(result) {
+        if (result.isLoaded) {
+          return result.durationMillis;
+        }
+      })
+      .catch(() => undefined);
+    if (!durationMillis) {
+      return;
+    }
+    const soundObj = {
+      file: 'test-fireship.mp3',
+      filname: 'Fireship React',
+      sound: sound,
+      durationMillis,
+      durationString: getDurationFormatted(durationMillis),
+      date: new Date(),
+      isUploaded: true,
+      isTranscribed: false
+    }
+    setRecordings([...recordings, soundObj]);
+  }
 
   async function startRecording() {
     try {
@@ -44,39 +74,46 @@ export default function HomeScreen() {
 
   async function stopRecording() {
     setRecording(undefined);
-    if (recording){
+    if (recording) {
       await recording.stopAndUnloadAsync();
       const { sound, status } = await recording.createNewLoadedSoundAsync();
       if (!status.isLoaded) {
-        Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Error
-        )
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
         Alert.alert('Failed to load recording');
         return;
-      } else  {
-        Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success
-        )
-        let filname = await getPromptResponse();
-        if (!filname) {
-          filname = `Untitled ${recordings.length + 1}`;
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      const uri = recording.getURI();
+      if (uri === null) {
+        Alert.alert('Error', 'Not able to save recording');
+        return;
+      }
+      let filname = await getPromptResponse();
+      if (!filname) {
+        filname = `Untitled ${recordings.length + 1}`;
+      }
+      if(status.durationMillis ) {
+        const newRecording = {
+          filname,
+          sound,
+          durationMillis: status.durationMillis,
+          durationString: getDurationFormatted(status.durationMillis),
+          file: uri,
+          date: new Date(Date.now() - status.durationMillis),
+          isUploaded: false,
+          isTranscribed: false
         }
-        const uri = recording.getURI();
-        if (uri === null) {
-          Alert.alert('Error', 'Not able to save recording');
-          return;
-        }
-        if(status.durationMillis ) {
-          const newRecording = {
-            filname,
-            sound,
-            duration: getDurationFormatted(status.durationMillis),
-            file: uri,
-            date: new Date(Date.now() - status.durationMillis),
-          };
-          let updatedRecordings = [newRecording, ...recordings];
-          setRecordings(updatedRecordings);
-        }
+        let updatedRecordings = [newRecording, ...recordings];
+        setRecordings(updatedRecordings);
+      }
+      const uploadResp = await uploadSoundFile(uri);
+      // Update a recording object in the recordings array with isUploadied == true
+      if (uploadResp) {
+        setRecordings((prevRecordings) =>
+          prevRecordings.map((recording) =>
+            recording.file === uri ? { ...recording, isUploaded: true } : recording
+          )
+        );
       }
     }
   }
@@ -92,14 +129,6 @@ export default function HomeScreen() {
     );
   });
 
-  function getDurationFormatted(millis: number) {
-    const minutes = millis / 1000 / 60;
-    const minutesDisplay = Math.floor(minutes);
-    const seconds = Math.round((minutes - minutesDisplay) * 60);
-    const secondsDisplay = seconds < 10 ? `0${seconds}` : seconds;
-    return `${minutesDisplay}:${secondsDisplay}`;
-  }
-
   const onBottomSheetPress = useCallback(() => {
     const isActive = bottomSheetRef?.current?.isActive();
     if (isActive) {
@@ -109,18 +138,51 @@ export default function HomeScreen() {
     }
   }, []);
 
+  async function transcribeSound() {
+    const fileToTranslate = recordings.find(
+      (recording) => recording.isUploaded && !recording.isTranscribed
+    );
+
+    if (fileToTranslate) {
+      const data = await transcribeSoundFile(fileToTranslate.file);
+      console.log('transcribeSound', fileToTranslate.file, data?.language);
+      // Update the isTranslated field for the file after translation is complete
+      setRecordings((prevRecordings) =>
+        prevRecordings.map((recording) =>
+          recording.file === fileToTranslate.file ? {...recording, isTranscribed: true} : recording
+        )
+      );
+    }
+  }
+
+
+  useEffect(() => {
+    if (recordings.length == 0) {
+      addMockSound();
+    }
+    transcribeSound();
+  }, [recordings]);
+
+
   return (
     <View style={{ height: '100%', paddingTop: 35 }}>
       <View style={styles.homeContainer}>
+        {recordings.length > 0 ? (
         <FlatList
           showsVerticalScrollIndicator={false}
           style={{ width:'100%', padding: 10, flex: 1, marginBottom: 150, overflow: 'visible' }}
           data={recordings}
           keyExtractor={(item) => item.filname}
           renderItem={({ item }) => (
-            <RecordingItem recording={item}/>
+            <RecordingItem recording={item} setRecording={setRecording}/>
           )}
-        />
+        />) : (
+          <LottieView
+            autoPlay
+            ref={animation}
+            style={{ width: 150, height: 150}}
+            source={require('../assets/lottie/astronaut-light-theme.json')}
+          />)}
       </View>
       <View style={{ position: 'absolute', bottom: 0, width: '100%', height: 125, marginBottom: 16 }}>
         <TouchableOpacity style={{width: '100%', height: 200, alignItems: 'center', marginBottom: 50}} onPress={onBottomSheetPress}>
