@@ -1,12 +1,12 @@
 import * as FileSystem from "expo-file-system";
+import {BACKEND_URL} from "@env";
 
 export interface APIResponse {
   success: string;
 }
 export async function uploadSoundFile(uri: string): Promise<APIResponse | undefined> {
-  console.log('Uploading sound file:', uri)
   // Replace the URL with your Flask server's IP address and port number
-  const serverUrl = 'http://192.168.0.4:5001/upload';
+  const serverUrl = `${BACKEND_URL}/upload`;
 
   // Get the file extension
   const fileExtension = uri.split('.').pop();

@@ -1,10 +1,10 @@
 import {Alert} from "react-native";
+import {BACKEND_URL} from '@env'
 
 export async function updateSegment(uri: string, id: number, text: string) {
   const filename = uri.split('/').pop();
   try {
-    const apiUrl = "http://192.168.0.4:5001";
-    return fetch(`${apiUrl}/update_segment`, {
+    return fetch(`${BACKEND_URL}/update_segment`, {
       method: "POST",
       headers: {
         "Accept": "application/json",

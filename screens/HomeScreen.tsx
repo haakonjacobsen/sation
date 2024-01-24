@@ -23,10 +23,19 @@ export default function HomeScreen() {
   const bottomSheetRef = useRef<BottomSheetRefProps>(null);
   const highQualityRecording = useRecoilValue(useHighQualityRecordingState);
 
+  const soundFiles = {
+    '../assets/audio/test-fireship.mp3': require('../assets/audio/test-fireship.mp3'),
+    '../assets/audio/wolfgang-w-penger.mp3': require('../assets/audio/wolfgang-w-penger.mp3'),
+  };
 
-  async function addMockSound() {
+  async function addMockSound(filepath: string, title: string) {
     console.log('addMockSound');
-    const { sound } = await Audio.Sound.createAsync( require('../assets/audio/test-fireship.mp3'));
+    if (!soundFiles.hasOwnProperty(filepath)) {
+      console.error(`File path not found in soundFiles: ${filepath}`);
+      return;
+    }
+    // @ts-ignore
+    const { sound } = await Audio.Sound.createAsync(soundFiles[filepath]);
     const durationMillis = await sound.getStatusAsync()
       .then(function(result) {
         if (result.isLoaded) {
@@ -38,13 +47,13 @@ export default function HomeScreen() {
       return;
     }
     const soundObj = {
-      file: 'test-fireship.mp3',
-      filname: 'Fireship React',
+      file: filepath.split('/').pop() as string,
+      filname: title,
       sound: sound,
       durationMillis,
       durationString: getDurationFormatted(durationMillis),
       date: new Date(),
-      isUploaded: true,
+      isUploaded: false,
       isTranscribed: false
     }
     setRecordings([...recordings, soundObj]);
@@ -158,7 +167,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (recordings.length == 0) {
-      addMockSound();
+      addMockSound('../assets/audio/wolfgang-w-penger.mp3', 'Wolfgang Wee - Penger');
     }
     transcribeSound();
   }, [recordings]);

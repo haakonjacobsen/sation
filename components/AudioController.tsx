@@ -9,13 +9,29 @@ import {uploadSoundFile} from "../api/uploadSoundFile";
 import {Slider} from "react-native-awesome-slider";
 import {useSharedValue} from "react-native-reanimated";
 
-export function AudioController({ recording }: { recording:RecordingObject } ) {
+export function AudioController({ recording }: { recording: RecordingObject } ) {
   const progress = useSharedValue(0);
   const min = useSharedValue(0);
   const max = useSharedValue(recording.durationMillis);
+  const [sound, _setSound] = useState<Audio.Sound>();
 
-  const [sound, setSound] = useState<Audio.Sound>();
-  const [currentPosition, setCurrentPosition] = useState<number>(0);
+  async function handleSoundPlayback() {
+
+    const info = await recording.sound?.getStatusAsync();
+    if (info.isLoaded) {
+      if (info.isPlaying) {
+        recording.sound.playAsync();
+      } else {
+        recording.sound.stopAsync();
+      }
+    }
+    else {
+      console.log('Loading sound');
+      recording.sound.playAsync();
+    }
+  }
+
+
   async function playSound() {
     recording.sound.playAsync();
   }
@@ -24,25 +40,15 @@ export function AudioController({ recording }: { recording:RecordingObject } ) {
     recording.sound.stopAsync();
   }
 
-
   async function searchAudio() {
     console.log('Searching in audio');
   }
-
-  useEffect(() => {
-    return sound
-      ? () => {
-        console.log('Unloading Sound');
-        sound.unloadAsync();
-      }
-      : undefined;
-  }, [sound]);
 
   return (
     <View style={styles.audioControllerContainer}>
       <Text style={styles.durationText}>{recording.durationString}</Text>
       <View style={styles.audioController}>
-        <TouchableOpacity onPress={playSound}>
+        <TouchableOpacity>
           <Ionicons name="ios-play" size={55} color={theme.text.primary} onPress={playSound}/>
         </TouchableOpacity>
         <Slider
@@ -58,7 +64,7 @@ export function AudioController({ recording }: { recording:RecordingObject } ) {
           minimumValue={min}
           maximumValue={max}
         />
-        <TouchableOpacity onPress={playSound}>
+        <TouchableOpacity onPress={() => console.log('Searching ...')}>
           <Ionicons name="ios-search" size={50}  color={theme.text.primary} onPress={searchAudio}/>
         </TouchableOpacity>
       </View>
